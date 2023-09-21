@@ -1,0 +1,197 @@
+select * from mad_doctor
+select * from mbs_doctorschedule
+select * from mbs_doctorslotsrange
+insert into mbs_doctorslotsrange values(5,3)
+select * from mbs_doctorslots
+delete from mbs_doctorslots
+CALL generate_all_doctor_slots();
+call generate_doctor_slots(5);
+delete from mbs_doctorschedule where doctorid>3 and doctorid<11;
+insert into mbs_doctorschedule values(5,1,123,'9:00','12:00',20)
+insert into mbs_doctorschedule values(5,2,135,'13:00','16:00',20)
+update mbs_doctorschedule set doctoravailablefrom ='09:00' where doctorid=4
+
+CREATE TRIGGER Insert_Trigger
+AFTER INSERT ON mbs_doctorschedule
+FOR EACH ROW
+EXECUTE FUNCTION Insert_Function();
+
+CREATE OR REPLACE FUNCTION Insert_Function() RETURNS Trigger AS $$
+BEGIN
+    call generate_doctor_slots(new.doctorid); 
+	return new;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE PROCEDURE generate_doctor_slots(IN doc_id INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+   dat date := Current_Date;
+   i INT := 1;
+   days INT;
+   actual Int;
+   occured int;
+   daynum int;
+   slots int;
+   j int := 1;
+   ftime time;
+   ttime time;
+   pt varchar;
+BEGIN
+    SELECT num_days FROM mbs_doctorslotsrange WHERE doct_id = doc_id INTO days; 
+    WHILE i <= days LOOP
+        daynum := EXTRACT(DOW FROM dat)+1;  -- Get the day of the week as an integer
+        RAISE NOTICE 'daynum: %', daynum;
+        SELECT GetSlotsCount(doc_id, daynum) INTO actual;
+        SELECT GetGeneratedSlotsCount(doc_id, dat) INTO occured;
+        slots := actual - occured;
+        RAISE NOTICE 'actual: %', actual;
+        j := 1;
+     
+        select doctoravailablefrom , doctoravailableto from mbs_doctorschedule where doctorid=doc_id and POSITION(daynum::TEXT IN doctorschedule)>0  into ftime,ttime;
+        WHILE j <= slots LOOP
+            INSERT INTO mbs_doctorslots (slot_doct_id, slot_date, slot_from, slot_to, slot_status)
+            VALUES (doc_id, dat, ftime, ttime, 'Av');
+            j := j + 1;
+        END LOOP;
+        i := i + 1;
+        dat := dat + 1;  -- Move to the next day
+    END LOOP;
+END;
+$$;
+
+
+
+
+CREATE OR REPLACE FUNCTION GetSlotsCount(doct_id INT, weekday INT) RETURNS INT AS $$
+DECLARE
+  weekpattern VARCHAR(10);
+  appointment_count INT:= 0;
+  temp_count int;
+  pat_slot INT;
+  flag INT := 0;
+  
+  
+  cur_weekpattern CURSOR FOR
+    SELECT doctorschedule
+    FROM mbs_doctorschedule
+    WHERE doctorid = doct_id;
+BEGIN
+OPEN cur_weekpattern;
+  
+  LOOP
+    FETCH cur_weekpattern INTO  weekpattern;
+    EXIT WHEN NOT FOUND;
+    
+  
+  RAISE NOTICE 'week pattern: %', weekpattern;
+
+  IF POSITION(weekday::TEXT IN weekpattern) > 0 THEN
+    RAISE NOTICE 'Weekday % is present in the week pattern', weekday;
+    flag := 1;
+  END IF;
+
+  IF flag = 1 THEN
+  
+  SELECT doctoravailableslot INTO pat_slot from mbs_doctorschedule where doctorid=doct_id and doctorschedule=weekpattern;
+  
+    SELECT 
+      ((EXTRACT(HOUR FROM doctoravailableto) * 60 + EXTRACT(MINUTE FROM doctoravailableto)) -
+      (EXTRACT(HOUR FROM doctoravailablefrom) * 60 + EXTRACT(MINUTE FROM doctoravailablefrom))) / pat_slot
+    INTO temp_count
+    FROM mbs_doctorschedule where  doctorid=doct_id and doctorschedule=weekpattern;
+  appointment_count:= appointment_count+temp_count;
+  END IF;
+  end loop;
+  CLOSE cur_weekpattern;
+   
+  RETURN appointment_count;
+END;
+$$ LANGUAGE plpgsql;
+ 
+ 
+ 
+ 
+ 
+ 
+ CREATE TRIGGER UpdateTrigger
+AFTER Update ON mbs_doctorschedule
+FOR EACH ROW
+EXECUTE FUNCTION Update_Function();
+
+
+CREATE OR REPLACE FUNCTION Update_Function() RETURNS Trigger AS $$
+Declare
+	doct_id int;
+	ftime time;
+	ttime time;
+BEGIN
+	doct_id :=old.doctorid;
+	ftime :=old.doctoravailablefrom;
+	ttime :=old.doctoravailableto;
+	delete from mbs_doctorslots where doct_id=slot_doct_id and slot_from=ftime and slot_to=ttime;
+    call generate_doctor_slots(new.doctorid); 
+	return new;
+END;
+$$ LANGUAGE plpgsql;
+ 
+ 
+ 
+select GetSlotsCount(5,1);
+select * from mbs_doctorschedule;
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PROCEDURE generate_doctor_slots(IN doc_id INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+   dat date := Current_Date;
+   i INT := 1;
+   days INT;
+   actual Int;
+   occured int;
+   daynum int;
+   slots int;
+   j int := 1;
+   ftime time;
+   ttime time;
+   pt varchar;
+BEGIN
+    SELECT num_days FROM mbs_doctorslotsrange WHERE doct_id = doc_id INTO days; 
+    WHILE i <= days LOOP
+        daynum := EXTRACT(DOW FROM dat)+1;  -- Get the day of the week as an integer
+        RAISE NOTICE 'daynum: %', daynum;
+        SELECT GetSlotsCount(doc_id, daynum) INTO actual;
+        SELECT GetGeneratedSlotsCount(doc_id, dat) INTO occured;
+        slots := actual - occured;
+        RAISE NOTICE 'actual: %', actual;
+        j := 1;
+     
+        select doctoravailablefrom , doctoravailableto from mbs_doctorschedule where doctorid=doc_id and POSITION(daynum::TEXT IN doctorschedule)>0  into ftime,ttime;
+        WHILE j <= slots LOOP
+            INSERT INTO mbs_doctorslots (slot_doct_id, slot_date, slot_from, slot_to, slot_status)
+            VALUES (doc_id, dat, ftime, ttime, 'Av');
+            j := j + 1;
+        END LOOP;
+        i := i + 1;
+        dat := dat + 1;  -- Move to the next day
+    END LOOP;
+END;
+$$;
+
+
+
+
+

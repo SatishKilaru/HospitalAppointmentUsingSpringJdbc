@@ -1,0 +1,10 @@
+CREATE OR REPLACE PROCEDURE update_slots(in doc_id int)
+LANGUAGE plpgsql
+AS $$
+
+BEGIN 
+	call generate_doctor_slots(doc_id);
+END;
+$$;
+
+call update_slots(1);

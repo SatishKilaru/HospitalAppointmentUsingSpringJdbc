@@ -1,0 +1,21 @@
+CREATE OR REPLACE PROCEDURE generate_all_doctor_slots()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+   n int:=0;
+   cur_mad CURSOR FOR
+    SELECT doc_id
+    FROM mad_doctor;
+BEGIN 
+    open cur_mad;
+    loop
+    fetch cur_mad  into n;
+    EXIT WHEN NOT FOUND;
+    CALL generate_doctor_slots(n);
+    
+    end loop; 
+    close cur_mad;
+END;
+$$;
+
+CALL generate_all_doctor_slots();

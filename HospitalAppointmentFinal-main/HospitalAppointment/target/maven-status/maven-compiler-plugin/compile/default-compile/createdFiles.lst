@@ -1,0 +1,8 @@
+com\models\Doctor.class
+com\models\DoctorSlots.class
+com\daos\DoctorDaoImp.class
+com\daos\DoctorDao.class
+com\models\DoctorMapper.class
+com\configuration\AppConfigaration.class
+com\controller\HospitalController.class
+com\models\DoctorSlotsMapper.class

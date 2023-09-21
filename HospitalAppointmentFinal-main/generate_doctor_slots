@@ -1,0 +1,115 @@
+
+CREATE OR REPLACE PROCEDURE generate_doctor_slots(IN doc_id INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+   dat date := Current_Date;
+   i INT := 1;
+   days INT;
+   actual Int;
+   occured int;
+   daynum int;
+   slots int;
+   j int := 1;
+   ftime time;
+   ttime time;
+   stime time;
+   pt varchar;
+BEGIN
+    SELECT num_days FROM mbs_doctorslotsrange WHERE doct_id = doc_id INTO days; 
+    WHILE i <= days LOOP
+        daynum := EXTRACT(DOW FROM dat)+1;  -- Get the day of the week as an integer
+        RAISE NOTICE 'daynum: %', daynum;
+        SELECT GetSlotsCount(doc_id, daynum) INTO actual;
+        SELECT GetGeneratedSlotsCount(doc_id, dat) INTO occured;
+        slots := actual - occured;
+        RAISE NOTICE 'actual: %', actual;
+        j := 1;
+SELECT MAKE_TIME(
+    0::integer,  -- Hours
+    (doctoravailableslot)::integer,  -- Minutes
+    0::integer  -- Seconds
+) INTO stime
+FROM mbs_doctorschedule
+WHERE doctorid = doc_id
+AND POSITION(daynum::TEXT IN doctorschedule) > 0;
+        select doctoravailablefrom , doctoravailableto from mbs_doctorschedule where doctorid=doc_id and POSITION(daynum::TEXT IN doctorschedule)>0  into ftime,ttime;
+        WHILE j <= slots LOOP
+ttime := ftime::interval + stime::interval;
+            INSERT INTO mbs_doctorslots (slot_doct_id, slot_date, slot_from, slot_to, slot_status)
+            VALUES (doc_id, dat, ftime, ttime, 'Av');
+        
+            ftime:= ttime;
+            j := j + 1;
+        END LOOP;
+        i := i + 1;
+        dat := dat + 1;  -- Move to the next day
+    END LOOP;
+END;
+$$;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PROCEDURE generate_doctor_slots(IN doc_id INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+   dat date := Current_Date;
+   i INT := 1;
+   days INT;
+   actual Int;
+   occured int;
+   daynum int;
+   slots int;
+   j int := 1;
+   ftime time;
+   ttime time;
+   stime time;
+   pt varchar;
+BEGIN
+    SELECT num_days FROM mbs_doctorslotsrange WHERE doct_id = doc_id INTO days; 
+    WHILE i <= days LOOP
+        daynum := EXTRACT(DOW FROM dat)+1;  -- Get the day of the week as an integer
+        RAISE NOTICE 'daynum: %', daynum;
+        SELECT GetSlotsCount(doc_id, daynum) INTO actual;
+        SELECT GetGeneratedSlotsCount(doc_id, dat) INTO occured;
+        slots := actual - occured;
+        RAISE NOTICE 'actual: %', actual;
+        j := 1;
+SELECT MAKE_TIME(
+    0::integer,  -- Hours
+    (doctoravailableslot)::integer,  -- Minutes
+    0::integer  -- Seconds
+) INTO stime
+FROM mbs_doctorschedule
+WHERE doctorid = doc_id
+AND POSITION(daynum::TEXT IN doctorschedule) > 0;
+        select doctoravailablefrom , doctoravailableto from mbs_doctorschedule where doctorid=doc_id and POSITION(daynum::TEXT IN doctorschedule)>0  into ftime,ttime;
+        WHILE j <= slots LOOP
+ttime := ftime::interval + stime::interval;
+            INSERT INTO mbs_slots (s_id,s_docid, s_date, s_ftime, s_ttime, s_status)
+            VALUES (i,doc_id, dat, ftime, ttime, 'Open');
+        
+            ftime:= ttime;
+            j := j + 1;
+        END LOOP;
+        i := i + 1;
+        dat := dat + 1;  -- Move to the next day
+    END LOOP;
+END;
+$$;

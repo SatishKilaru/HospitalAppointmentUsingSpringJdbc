@@ -1,0 +1,31 @@
+CREATE OR REPLACE FUNCTION GetGeneratedSlotsCount(doct_id INT,  slotdate date) RETURNS INT AS $$
+DECLARE
+   appointment_count INT;
+BEGIN
+   select count(*) from mbs_doctorslots where slot_doct_id = doct_id and slot_date=slotdate into appointment_count;
+   RETURN appointment_count;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION GetGeneratedSlotsCount(doct_id INT,  slotdate date) RETURNS INT AS $$
+DECLARE
+   appointment_count INT;
+BEGIN
+   select count(*) from mbs_doctorslots where slot_doct_id = doct_id and slot_date=slotdate into appointment_count;
+   RETURN appointment_count;
+END;
+$$ LANGUAGE plpgsql;
+
